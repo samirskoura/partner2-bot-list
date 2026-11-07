@@ -1,0 +1,134 @@
+2026.10.15-selected-squads
+
+Selected-Squad read update:
+- Candidate Ad lists come only from the selected Ad Squad endpoints.
+- Reads only selected linked Creative IDs using the documented read-only batch endpoint.
+- Shared links use one complete audit at the first eligible edit of a check,
+  followed by sorted changed-link pages with a five-minute overlap.
+- Fresh linked-Ad and Creative reads still happen after every durable reservation.
+- Unusable update timestamps/order cause a complete-audit fallback.
+- Shared-link indexing relies on Snapchat's documented update ordering; no
+  linked-Ad read and Creative PATCH can form an atomic transaction.
+- No link index is persisted; saved state schema and encrypted format are unchanged.
+- Workflow streams sanitized Python output and preserves completion/error handling.
+- Keeps the 200 cap, 80 form default, 30 scheduled fallback and 30-second pause.
+
+Earlier changes retained:
+
+Workflow timing update, 2026-10-15:
+- Overnight monitoring now pauses 30 seconds after each completed check.
+- Only the workflow needs replacement for an existing 200-limit installation.
+- The Python worker, review waits, status guards, state format and edit cap are unchanged.
+- Scheduled starts remain every five minutes; 30-second pauses apply inside an overnight job.
+
+200-ceiling update:
+- Raises the total per-check hard ceiling from 80 to 200 unique eligible Creatives.
+- Keeps the manual form default at 80 and the scheduled fallback at 30.
+- Enter max_updates=200 in the form to use the new ceiling.
+- The budget is shared across all selected squads, not per squad.
+- Runtime review, reservation, state and headline-selection functions are unchanged.
+- State schema and encrypted format remain unchanged; use the existing state key.
+- OpenAI request batches remain capped at 30; manual mode uses no OpenAI.
+
+Complete package, including all runtime files and setup helpers.
+
+- Adds credential-safe OAuth diagnostics to the revised engine.
+- Token errors show only recognized OAuth codes and fixed guidance, not raw bodies.
+- The same suitable headline may be used on many different Creatives.
+- Personal headline files are the default, with no OpenAI key or product context required.
+- 500/800-line UTF-8 files are supported; blank/comment/duplicate lines are ignored.
+- Random selection from each Creative's unused suitable lines in THIS workflow run.
+- All overnight checks share usage; no reset between checks.
+- A new workflow run or re-run attempt resets only headline usage automatically.
+- Current wording stays excluded; older headlines can be reused in the new run.
+- Approved records, pending review waits, uncertain edits and target records persist.
+- GitHub run ID plus attempt number defines the boundary; no new Secret is needed.
+- Checkout loads the current branch to retain the latest review state on re-runs.
+- Exhausted lists do not recycle within a run; the next workflow launch starts fresh.
+- Repeat checks use each Creative's current wording and current-run usage.
+- Invisible formatting and composed diacritics cannot disguise previously used wording.
+- Rechecks authoritative per-Creative history before reserving each headline.
+- Writes local state atomically, with a flushed temporary file.
+- On Actions, encrypts, commits and pushes each reservation BEFORE the edit.
+- A failed checkpoint stops the monitor with exit code 90 before that edit.
+- Rechecks all live status/link protections AFTER the checkpoint.
+- Retains reserved wording even when a status check skips an edit.
+- An unconfirmed interrupted PATCH remains blocked rather than blindly retried.
+- Similar but distinct personal lines are allowed; optional AI keeps its near-duplicate check.
+- Existing per-Creative history, legacy last headlines and pending reservations are retained.
+- Newly observed headlines are saved under their Creative IDs, including external edits.
+- Account-wide history and historical hashes no longer restrict reuse across Creatives.
+- The model prompt explicitly allows sharing wording across Creative IDs and batches.
+- Malformed per-Creative history stops the run instead of silently clearing records.
+- Token request fields and conditional Creative PATCH guards are retained.
+- Adds safe recognized OpenAI error codes/types with no raw response logging.
+- Allows at most three total attempts for temporary rate limits/server errors
+  within a 180-second retry window, honoring valid Retry-After waits.
+- Quota, billing, auth and unknown 429 responses stop without automatic retry.
+- Exit code 78 saves encrypted history and stops the current monitor immediately.
+- Scheduled jobs remain controlled by BOT_ENABLED; see OPENAI_429_HELP.txt.
+- Workflow adds automatic recovery of a deleted state.json.enc from Git history.
+- Supports replacing every file in the same repository while keeping Secrets.
+- Restores only the latest saved encrypted state, never old code or an older fallback.
+- Up to 200 unique eligible Creatives across 1-20 squads in ONE Ad Account.
+- Manual default 80; scheduled fallback remains 30.
+- OpenAI candidate batches of at most 30.
+- Refreshes shared-link information, linked Ads and the Creative before every edit.
+- Requires all linked live Ads to be REJECTED and the Creative DISAPPROVED.
+- APPROVED, PENDING, PENDING_REVIEW, unknown statuses and outside links block edits.
+- Approval observations are retained in saved state.
+- Every Creative PATCH tests DISAPPROVED status and the exact prior headline.
+- Failed or incomplete responses stop processing; uncertain PATCH reservations remain.
+- State schema is version 11; encrypted file format stays SNAP-STATE-AESGCM-1.
+- Saved state is recovered using the existing encryption key and repository history.
+- No per-Creative retry limit; only confirmed rejections can become eligible again.
+- Encryption preflight happens before Snapchat access.
+- Logs conceal target identifiers and headline details when PUBLIC_SAFE_LOGS=true.
+
+Validation for the selected-Squad update:
+- 20 offline service tests cover 30 selected Creatives in a 5,258-Ad account,
+  one full audit with small change pages, 200 total edits across three Squads,
+  approved/pending/unknown and outside links, late-created shared links,
+  paginated changes, fixed audit watermarks, timestamp/order fallbacks,
+  malformed/partial responses, deleted Ads, conditional PATCH failure,
+  failed checkpoints and zero-write previews.
+- 5 shell cases cover streamed progress, success and worker failure codes,
+  failed state saves, failed log capture and preserved completion output.
+- State/crypto/checkpoint/recovery files and requirements are byte-identical.
+- Existing review-wait, headline selection, reservation and state functions
+  are unchanged. Changes are limited to scoped reads, link refresh and output.
+- No live Snapchat edits were made while developing this update.
+
+Earlier-release validation retained (see README for this update's scope):
+- 6 focused offline tests cover the new shared 200 limit across 3/5 squads,
+  clamping larger requests to 200, retaining an 80 limit, zero-write 200 previews,
+  approved/pending changes immediately before the final edit, conditional PATCH
+  rejection after 199 edits, and checkpoint failure stopping before edit 200.
+- Runtime function/class ASTs match the prior version; only version and cap changed.
+- 9 new offline checks cover run boundaries, overnight checks, new-run reuse,
+  re-run attempts, schedules, legacy migration, protected review state, dry runs,
+  invalid usage data, latest-branch checkout and loading remote state in a new run.
+- 11 offline tests cover random unused options, repeated checks in one run,
+  invisible duplicate wording, fresh history checks and atomic write failures.
+  They include LOCAL Git remotes to verify a durable reservation exists before
+  PATCH, failed pushes/invalid keys stop edits, status changes during persistence
+  block edits, and a fresh checkout within the same run does not repeat a headline.
+- 6 offline manual-pool tests, including 500/800 lines, missing OpenAI credentials,
+  independent progress, exhausted-pool handling, no OpenAI calls and workflow defaults.
+- 12 offline headline-sharing tests: one headline across 80 Creatives, no repeat on
+  the same Creative across checks within a run, migration, external edits, pending/approved
+  sources, normalized/near duplicates, private model payloads and zero-write test mode.
+- 14 offline OpenAI recovery tests, including quota stops, privacy, retry limits,
+  Retry-After handling, state save before monitor stop, and status changes during waits.
+- 16 offline OAuth cases checked, including credential redaction and unchanged request fields.
+- The revised engine passed 14 offline integration tests, including 60/80 limits,
+  status changes, shared Creatives, conditional PATCH rejection and zero-write test mode.
+- Packaged Python, YAML and workflow shell syntax checked.
+- State encryption round trip and wrong-key rejection checked locally.
+- Runtime file inventory and ZIP contents checked.
+- Recovery tested in temporary Git repositories, including delete-all/re-upload.
+- No live Snapchat edits or OpenAI requests during package creation.
+- Windows PowerShell helpers included from the existing package; not executed here.
+
+See README.md for concurrent-status limitations and REPLACE_ALL_FILES.txt
+for replacing all files in a repository that already contains history.
